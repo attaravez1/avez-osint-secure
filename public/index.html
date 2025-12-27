@@ -386,5 +386,635 @@
             }
         });
     </script>
+
+
+
+
+    <!-- Gemini AI Chatbot Widget -->
+<div id="chatbot-container">
+    <!-- Chatbot Toggle Button -->
+    <button id="chatbot-toggle" title="Ask Cybersecurity Questions">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"></path>
+        </svg>
+    </button>
+
+    <!-- Chatbot Window -->
+    <div id="chatbot-window">
+        <!-- Chat Header -->
+        <div class="chat-header">
+            <h3>🔒 Cybersecurity AI Assistant</h3>
+            <button id="chatbot-close">&times;</button>
+        </div>
+
+        <!-- Chat Messages Container -->
+        <div id="chat-messages">
+            <!-- Initial welcome message -->
+            <div class="message bot">
+                <div class="message-content">
+                    <strong>Cybersecurity AI:</strong> I'm trained on cybersecurity topics. Ask me about:<br>
+                    • Hacking techniques & tools<br>
+                    • OSINT methods<br>
+                    • Network security<br>
+                    • Malware analysis<br>
+                    • Security best practices<br><br>
+                    <em>Note: I provide educational information only.</em>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Input Area -->
+        <div class="chat-input-area">
+            <textarea id="chat-input" placeholder="Ask a cybersecurity question... (Shift+Enter for new line, Enter to send)" rows="1"></textarea>
+            <button id="send-button">Send</button>
+        </div>
+
+        <!-- Status Indicator -->
+        <div id="chat-status"></div>
+    </div>
+</div>
+
+<style>
+/* Chatbot Widget Styles */
+#chatbot-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+#chatbot-toggle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #58a6ff, #a371f7);
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+#chatbot-toggle:hover {
+    transform: scale(1.1);
+    background: linear-gradient(135deg, #1f6feb, #8957e5);
+}
+
+#chatbot-window {
+    position: absolute;
+    bottom: 70px;
+    right: 0;
+    width: 400px;
+    max-width: 90vw;
+    height: 500px;
+    max-height: 70vh;
+    background-color: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#chatbot-window.active {
+    display: flex;
+}
+
+.chat-header {
+    padding: 15px 20px;
+    background-color: #1c2128;
+    border-bottom: 1px solid #30363d;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-header h3 {
+    margin: 0;
+    color: #58a6ff;
+    font-size: 16px;
+}
+
+#chatbot-close {
+    background: none;
+    border: none;
+    color: #8b949e;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    line-height: 1;
+}
+
+#chatbot-close:hover {
+    color: #f85149;
+}
+
+#chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.message {
+    max-width: 85%;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message.user {
+    align-self: flex-end;
+}
+
+.message.bot {
+    align-self: flex-start;
+}
+
+.message-content {
+    padding: 12px 16px;
+    border-radius: 18px;
+    line-height: 1.5;
+    font-size: 14px;
+}
+
+.message.user .message-content {
+    background: linear-gradient(135deg, #1f6feb, #0d419d);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.message.bot .message-content {
+    background-color: #21262d;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
+    border-bottom-left-radius: 4px;
+}
+
+.message.bot .message-content strong {
+    color: #58a6ff;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.message.bot .message-content pre,
+.message.bot .message-content code {
+    background-color: #0d1117;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Consolas', monospace;
+    margin: 5px 0;
+    overflow-x: auto;
+}
+
+.chat-input-area {
+    padding: 15px 20px;
+    border-top: 1px solid #30363d;
+    background-color: #1c2128;
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+#chat-input {
+    flex: 1;
+    padding: 12px 15px;
+    background-color: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    color: #c9d1d9;
+    font-family: inherit;
+    font-size: 14px;
+    resize: none;
+    max-height: 120px;
+    min-height: 44px;
+    line-height: 1.5;
+}
+
+#chat-input:focus {
+    outline: none;
+    border-color: #58a6ff;
+}
+
+#send-button {
+    padding: 12px 20px;
+    background-color: #238636;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+    height: 44px;
+    white-space: nowrap;
+}
+
+#send-button:hover:not(:disabled) {
+    background-color: #2ea043;
+}
+
+#send-button:disabled {
+    background-color: #30363d;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+#chat-status {
+    padding: 8px 20px;
+    background-color: #1c2128;
+    color: #8b949e;
+    font-size: 12px;
+    text-align: center;
+    border-top: 1px solid #30363d;
+    min-height: 34px;
+}
+
+.typing-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.typing-indicator span {
+    width: 8px;
+    height: 8px;
+    background-color: #58a6ff;
+    border-radius: 50%;
+    animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typing {
+    0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+    40% { transform: scale(1); opacity: 1; }
+}
+
+/* Scrollbar styling */
+#chat-messages::-webkit-scrollbar {
+    width: 8px;
+}
+
+#chat-messages::-webkit-scrollbar-track {
+    background: #0d1117;
+}
+
+#chat-messages::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 4px;
+}
+
+#chat-messages::-webkit-scrollbar-thumb:hover {
+    background: #484f58;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    #chatbot-container {
+        bottom: 10px;
+        right: 10px;
+    }
+    
+    #chatbot-window {
+        width: calc(100vw - 40px);
+        max-width: none;
+        right: -10px;
+    }
+}
+</style>
+
+<script>
+// Gemini AI Chatbot Configuration
+const GEMINI_API_KEY = 'AIzaSyA9mnhX1D5zTc9slK75tuPAoEoAHHIqfeY';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+
+// System prompt for cybersecurity focus
+const SYSTEM_PROMPT = `You are a cybersecurity expert AI assistant. Your role is to provide educational information about:
+1. Ethical hacking techniques and methodologies
+2. OSINT (Open Source Intelligence) tools and methods
+3. Network security and penetration testing
+4. Malware analysis and reverse engineering
+5. Security best practices and hardening
+6. Cryptographic principles and implementations
+7. Incident response and forensic analysis
+8. Compliance frameworks (NIST, ISO27001, etc.)
+
+IMPORTANT RULES:
+- Provide detailed, technical explanations
+- Include code examples when relevant (Python, Bash, PowerShell, SQL, etc.)
+- Explain security concepts clearly
+- Never provide instructions for illegal activities
+- Focus on education and awareness
+- Mention legal and ethical considerations
+- Format responses with clear sections using markdown-like styling
+
+Always begin responses with "🔐 Cybersecurity Expert: "`;
+
+// DOM Elements
+const chatbotToggle = document.getElementById('chatbot-toggle');
+const chatbotWindow = document.getElementById('chatbot-window');
+const chatbotClose = document.getElementById('chatbot-close');
+const chatMessages = document.getElementById('chat-messages');
+const chatInput = document.getElementById('chat-input');
+const sendButton = document.getElementById('send-button');
+const chatStatus = document.getElementById('chat-status');
+
+// Chat state
+let isChatbotOpen = false;
+let messageHistory = [];
+
+// Initialize chatbot
+function initChatbot() {
+    // Load history from localStorage
+    const savedHistory = localStorage.getItem('cyber_chat_history');
+    if (savedHistory) {
+        try {
+            messageHistory = JSON.parse(savedHistory).slice(-10); // Keep last 10 messages
+        } catch (e) {
+            messageHistory = [];
+        }
+    }
+    
+    // Add initial system message if history is empty
+    if (messageHistory.length === 0) {
+        messageHistory.push({
+            role: 'user',
+            parts: [{ text: SYSTEM_PROMPT }]
+        });
+        messageHistory.push({
+            role: 'model',
+            parts: [{ text: 'I understand. I am ready to assist with cybersecurity questions. Please ask your first question.' }]
+        });
+    }
+}
+
+// Toggle chatbot window
+chatbotToggle.addEventListener('click', () => {
+    isChatbotOpen = !isChatbotOpen;
+    chatbotWindow.classList.toggle('active', isChatbotOpen);
+    
+    if (isChatbotOpen) {
+        chatInput.focus();
+        scrollToBottom();
+    }
+});
+
+chatbotClose.addEventListener('click', () => {
+    isChatbotOpen = false;
+    chatbotWindow.classList.remove('active');
+});
+
+// Auto-resize textarea
+chatInput.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
+});
+
+// Send message on Enter (but allow Shift+Enter for new line)
+chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+// Send button click
+sendButton.addEventListener('click', sendMessage);
+
+// Add message to chat
+function addMessage(text, isUser = false) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    
+    // Format the text (simple markdown parsing)
+    let formattedText = text
+        .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        .replace(/\n/g, '<br>');
+    
+    contentDiv.innerHTML = formattedText;
+    messageDiv.appendChild(contentDiv);
+    chatMessages.appendChild(messageDiv);
+    
+    // Save to history
+    messageHistory.push({
+        role: isUser ? 'user' : 'model',
+        parts: [{ text: text }]
+    });
+    
+    // Keep only last 20 messages to avoid token limits
+    if (messageHistory.length > 20) {
+        messageHistory = messageHistory.slice(-20);
+    }
+    
+    // Save to localStorage
+    localStorage.setItem('cyber_chat_history', JSON.stringify(messageHistory));
+    
+    scrollToBottom();
+}
+
+// Show typing indicator
+function showTyping() {
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'message bot';
+    typingDiv.id = 'typing-indicator';
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    contentDiv.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+    
+    typingDiv.appendChild(contentDiv);
+    chatMessages.appendChild(typingDiv);
+    scrollToBottom();
+}
+
+// Hide typing indicator
+function hideTyping() {
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (typingIndicator) {
+        typingIndicator.remove();
+    }
+}
+
+// Scroll to bottom of chat
+function scrollToBottom() {
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Send message to Gemini API
+async function sendMessage() {
+    const message = chatInput.value.trim();
+    if (!message) return;
+    
+    // Disable input and show typing
+    chatInput.value = '';
+    chatInput.style.height = 'auto';
+    sendButton.disabled = true;
+    chatInput.disabled = true;
+    
+    // Add user message to chat
+    addMessage(message, true);
+    showTyping();
+    
+    // Update status
+    chatStatus.textContent = 'Connecting to Gemini AI...';
+    
+    try {
+        // Prepare messages for API (include system prompt context)
+        const apiMessages = [
+            {
+                role: 'user',
+                parts: [{ text: SYSTEM_PROMPT }]
+            },
+            {
+                role: 'model', 
+                parts: [{ text: 'I understand. I am ready to assist with cybersecurity questions. Please ask your first question.' }]
+            },
+            ...messageHistory.slice(-8) // Include recent history
+        ];
+        
+        // Make API request
+        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                contents: apiMessages,
+                generationConfig: {
+                    temperature: 0.7,
+                    topK: 1,
+                    topP: 0.8,
+                    maxOutputTokens: 2048,
+                },
+                safetySettings: [
+                    {
+                        category: "HARM_CATEGORY_HARASSMENT",
+                        threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                    },
+                    {
+                        category: "HARM_CATEGORY_HATE_SPEECH",
+                        threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                    },
+                    {
+                        category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                        threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                    },
+                    {
+                        category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                        threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                    }
+                ]
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.candidates && data.candidates[0].content) {
+            const botResponse = data.candidates[0].content.parts[0].text;
+            hideTyping();
+            addMessage(botResponse, false);
+            chatStatus.textContent = 'Response received';
+        } else {
+            throw new Error('Invalid response from AI');
+        }
+        
+    } catch (error) {
+        console.error('Chat error:', error);
+        hideTyping();
+        addMessage(`❌ Error: ${error.message}. Please check your API key or try again.`, false);
+        chatStatus.textContent = 'Error occurred';
+    } finally {
+        // Re-enable input
+        sendButton.disabled = false;
+        chatInput.disabled = false;
+        chatInput.focus();
+        
+        // Clear status after delay
+        setTimeout(() => {
+            chatStatus.textContent = '';
+        }, 3000);
+    }
+}
+
+// Clear chat history (optional - can add a button for this)
+function clearChatHistory() {
+    if (confirm('Clear all chat history?')) {
+        messageHistory = [];
+        localStorage.removeItem('cyber_chat_history');
+        chatMessages.innerHTML = `
+            <div class="message bot">
+                <div class="message-content">
+                    <strong>Cybersecurity AI:</strong> I'm trained on cybersecurity topics. Ask me about:<br>
+                    • Hacking techniques & tools<br>
+                    • OSINT methods<br>
+                    • Network security<br>
+                    • Malware analysis<br>
+                    • Security best practices<br><br>
+                    <em>Note: I provide educational information only.</em>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    initChatbot();
+    
+    // Add clear history button (optional)
+    const clearBtn = document.createElement('button');
+    clearBtn.textContent = 'Clear History';
+    clearBtn.style.cssText = `
+        position: absolute;
+        top: 15px;
+        right: 50px;
+        background: transparent;
+        border: 1px solid #30363d;
+        color: #8b949e;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+    `;
+    clearBtn.onclick = clearChatHistory;
+    document.querySelector('.chat-header').appendChild(clearBtn);
+});
+
+// Auto-open chatbot if there's a query parameter
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('chat') === 'open') {
+    setTimeout(() => {
+        chatbotToggle.click();
+    }, 1000);
+}
+</script>
 </body>
 </html>
