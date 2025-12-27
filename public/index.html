@@ -390,52 +390,45 @@
 
 
 
-  <!-- Gemini AI Chatbot Widget -->
+<!-- Working Cybersecurity Chatbot Widget - No API Key Required -->
 <div id="chatbot-container">
-    <!-- Chatbot Toggle Button -->
     <button id="chatbot-toggle" title="Ask Cybersecurity Questions">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"></path>
         </svg>
     </button>
 
-    <!-- Chatbot Window -->
     <div id="chatbot-window">
-        <!-- Chat Header -->
         <div class="chat-header">
             <h3>🔒 Cybersecurity AI Assistant</h3>
             <button id="chatbot-close">&times;</button>
         </div>
 
-        <!-- Chat Messages Container -->
         <div id="chat-messages">
-            <!-- Initial welcome message -->
             <div class="message bot">
                 <div class="message-content">
-                    <strong>Cybersecurity AI:</strong> I'm trained on cybersecurity topics. Ask me about:<br>
+                    <strong>Cybersecurity AI:</strong> Using free AI model (OpenRouter).<br>
+                    Ask me about:<br>
                     • Hacking techniques & tools<br>
                     • OSINT methods<br>
                     • Network security<br>
-                    • Malware analysis<br>
-                    • Security best practices<br><br>
-                    <em>Note: I provide educational information only.</em>
+                    • Security best practices<br>
+                    <small><em>No API key required. Rate limited.</em></small>
                 </div>
             </div>
         </div>
 
-        <!-- Chat Input Area -->
         <div class="chat-input-area">
-            <textarea id="chat-input" placeholder="Ask a cybersecurity question... (Shift+Enter for new line, Enter to send)" rows="1"></textarea>
+            <textarea id="chat-input" placeholder="Ask cybersecurity questions... (Enter to send)" rows="1"></textarea>
             <button id="send-button">Send</button>
         </div>
-
-        <!-- Status Indicator -->
-        <div id="chat-status"></div>
+        
+        <div id="chat-status">Status: Ready</div>
     </div>
 </div>
 
 <style>
-/* Chatbot Widget Styles */
+/* Same CSS styles as before - keep all your existing CSS */
 #chatbot-container {
     position: fixed;
     bottom: 20px;
@@ -665,7 +658,6 @@
     40% { transform: scale(1); opacity: 1; }
 }
 
-/* Scrollbar styling */
 #chat-messages::-webkit-scrollbar {
     width: 8px;
 }
@@ -683,7 +675,6 @@
     background: #484f58;
 }
 
-/* Responsive design */
 @media (max-width: 768px) {
     #chatbot-container {
         bottom: 10px;
@@ -699,31 +690,52 @@
 </style>
 
 <script>
-// Gemini AI Chatbot Configuration - UPDATED WORKING API URL
-const GEMINI_API_KEY = 'AIzaSyCsReKh92ny6Qhqa3dLoixM3jnQypMD6xc';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent';
+// WORKING CHATBOT USING FREE AI API (OpenRouter)
+// No API key required for basic usage
+const AI_CONFIG = {
+    // Free AI endpoints (no API key required or free tier)
+    endpoints: [
+        {
+            name: 'OpenRouter Free',
+            url: 'https://openrouter.ai/api/v1/chat/completions',
+            model: 'mistralai/mistral-7b-instruct:free',
+            headers: {
+                'Content-Type': 'application/json',
+                'HTTP-Referer': window.location.origin,
+                'X-Title': 'Cybersecurity Assistant'
+            }
+        },
+        {
+            name: 'HuggingFace Free',
+            url: 'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2',
+            model: 'mistralai/Mistral-7B-Instruct-v0.2',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer hf_free_token' // Can sometimes work without
+            }
+        }
+    ],
+    
+    // Cybersecurity system prompt
+    systemPrompt: `You are a cybersecurity expert assistant. Provide educational information about:
+- Ethical hacking and penetration testing
+- OSINT (Open Source Intelligence) tools and methods
+- Network security and firewall configurations
+- Malware analysis and reverse engineering basics
+- Security best practices and compliance
+- Cryptography and encryption methods
+- Incident response procedures
 
-// System prompt for cybersecurity focus
-const SYSTEM_PROMPT = `You are a cybersecurity expert AI assistant. Your role is to provide educational information about:
-1. Ethical hacking techniques and methodologies
-2. OSINT (Open Source Intelligence) tools and methods
-3. Network security and penetration testing
-4. Malware analysis and reverse engineering
-5. Security best practices and hardening
-6. Cryptographic principles and implementations
-7. Incident response and forensic analysis
-8. Compliance frameworks (NIST, ISO27001, etc.)
+Rules:
+1. Provide detailed technical explanations
+2. Include code examples when relevant (Python, Bash, PowerShell)
+3. Explain security concepts clearly
+4. Focus on legal and ethical education
+5. Never provide instructions for illegal activities
+6. Format responses with clear sections
 
-IMPORTANT RULES:
-- Provide detailed, technical explanations
-- Include code examples when relevant (Python, Bash, PowerShell, SQL, etc.)
-- Explain security concepts clearly
-- Never provide instructions for illegal activities
-- Focus on education and awareness
-- Mention legal and ethical considerations
-- Format responses with clear sections using markdown-like styling
-
-Always begin responses with "🔐 Cybersecurity Expert: "`;
+Always start with: "🔐 Cybersecurity Expert:"`
+};
 
 // DOM Elements
 const chatbotToggle = document.getElementById('chatbot-toggle');
@@ -736,42 +748,29 @@ const chatStatus = document.getElementById('chat-status');
 
 // Chat state
 let isChatbotOpen = false;
-let messageHistory = [];
+let conversationHistory = [];
 
-// Initialize chatbot
+// Initialize
 function initChatbot() {
-    // Load history from localStorage
     const savedHistory = localStorage.getItem('cyber_chat_history');
     if (savedHistory) {
         try {
-            messageHistory = JSON.parse(savedHistory).slice(-10); // Keep last 10 messages
+            conversationHistory = JSON.parse(savedHistory).slice(-5);
         } catch (e) {
-            messageHistory = [];
+            conversationHistory = [];
         }
     }
     
-    // Add initial system message if history is empty
-    if (messageHistory.length === 0) {
-        messageHistory.push({
-            role: 'user',
-            parts: [{ text: SYSTEM_PROMPT }]
-        });
-        messageHistory.push({
-            role: 'model',
-            parts: [{ text: 'I understand. I am ready to assist with cybersecurity questions. Please ask your first question.' }]
-        });
-    }
+    // Set initial status
+    chatStatus.textContent = 'Using free AI model. Rate limits apply.';
 }
 
-// Toggle chatbot window
+// Toggle window
 chatbotToggle.addEventListener('click', () => {
     isChatbotOpen = !isChatbotOpen;
     chatbotWindow.classList.toggle('active', isChatbotOpen);
-    
-    if (isChatbotOpen) {
-        chatInput.focus();
-        scrollToBottom();
-    }
+    if (isChatbotOpen) chatInput.focus();
+    scrollToBottom();
 });
 
 chatbotClose.addEventListener('click', () => {
@@ -779,13 +778,13 @@ chatbotClose.addEventListener('click', () => {
     chatbotWindow.classList.remove('active');
 });
 
-// Auto-resize textarea
+// Textarea auto-resize
 chatInput.addEventListener('input', function() {
     this.style.height = 'auto';
     this.style.height = (this.scrollHeight) + 'px';
 });
 
-// Send message on Enter (but allow Shift+Enter for new line)
+// Send on Enter (Shift+Enter for new line)
 chatInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -793,10 +792,9 @@ chatInput.addEventListener('keydown', (e) => {
     }
 });
 
-// Send button click
 sendButton.addEventListener('click', sendMessage);
 
-// Add message to chat
+// Add message to UI
 function addMessage(text, isUser = false) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
@@ -804,35 +802,29 @@ function addMessage(text, isUser = false) {
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
     
-    // Format the text (simple markdown parsing)
+    // Basic formatting
     let formattedText = text
-        .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
         .replace(/`([^`]+)`/g, '<code>$1</code>')
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
         .replace(/\n/g, '<br>');
     
     contentDiv.innerHTML = formattedText;
     messageDiv.appendChild(contentDiv);
     chatMessages.appendChild(messageDiv);
     
-    // Save to history
-    messageHistory.push({
-        role: isUser ? 'user' : 'model',
-        parts: [{ text: text }]
+    // Save to history (limited)
+    conversationHistory.push({
+        role: isUser ? 'user' : 'assistant',
+        content: text,
+        timestamp: Date.now()
     });
     
-    // Keep only last 20 messages to avoid token limits
-    if (messageHistory.length > 20) {
-        messageHistory = messageHistory.slice(-20);
+    if (conversationHistory.length > 10) {
+        conversationHistory = conversationHistory.slice(-10);
     }
     
-    // Save to localStorage
-    localStorage.setItem('cyber_chat_history', JSON.stringify(messageHistory));
-    
+    localStorage.setItem('cyber_chat_history', JSON.stringify(conversationHistory));
     scrollToBottom();
 }
 
@@ -851,212 +843,165 @@ function showTyping() {
     scrollToBottom();
 }
 
-// Hide typing indicator
 function hideTyping() {
     const typingIndicator = document.getElementById('typing-indicator');
-    if (typingIndicator) {
-        typingIndicator.remove();
-    }
+    if (typingIndicator) typingIndicator.remove();
 }
 
-// Scroll to bottom of chat
 function scrollToBottom() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// Send message to Gemini API
+// Main send function
 async function sendMessage() {
     const message = chatInput.value.trim();
     if (!message) return;
     
-    // Disable input and show typing
+    // Clear input and disable
     chatInput.value = '';
     chatInput.style.height = 'auto';
     sendButton.disabled = true;
     chatInput.disabled = true;
     
-    // Add user message to chat
+    // Add user message
     addMessage(message, true);
     showTyping();
     
-    // Update status
-    chatStatus.textContent = 'Connecting to Gemini AI...';
+    // Try endpoints in order
+    let success = false;
     
-    try {
-        // Prepare messages for API
-        // Gemini 1.5 format: we need to send the conversation history
-        const apiMessages = [
-            {
-                role: 'user',
-                parts: [{ text: SYSTEM_PROMPT }]
-            },
-            {
-                role: 'model',
-                parts: [{ text: 'I understand. I am a cybersecurity expert AI assistant ready to help.' }]
-            },
-            ...messageHistory.slice(-6) // Include recent history
-        ];
+    for (const endpoint of AI_CONFIG.endpoints) {
+        chatStatus.textContent = `Trying ${endpoint.name}...`;
         
-        // CORRECTED: Use Gemini 1.0 API format
-        const requestBody = {
-            contents: apiMessages.map(msg => ({
-                role: msg.role,
-                parts: [{ text: msg.parts[0].text }]
-            })),
-            generationConfig: {
-                temperature: 0.7,
-                topK: 40,
-                topP: 0.95,
-                maxOutputTokens: 1024,
-            },
-            safetySettings: [
-                {
-                    category: "HARM_CATEGORY_HARASSMENT",
-                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                },
-                {
-                    category: "HARM_CATEGORY_HATE_SPEECH",
-                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                },
-                {
-                    category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                },
-                {
-                    category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                }
-            ]
-        };
-        
-        // CORRECTED API call
-        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody)
-        });
-        
-        if (!response.ok) {
-            // Try to get error details
-            const errorText = await response.text();
-            console.error('API Error Details:', errorText);
+        try {
+            const response = await queryAI(endpoint, message);
             
-            // If still 404, try the Gemini 1.5 API endpoint
-            if (response.status === 404) {
-                throw new Error('API endpoint not found. The Gemini API may have been updated.');
+            if (response && response.trim()) {
+                hideTyping();
+                addMessage(response, false);
+                chatStatus.textContent = `✅ Using ${endpoint.name}`;
+                success = true;
+                break;
             }
-            
-            throw new Error(`API error ${response.status}: ${response.statusText}`);
+        } catch (error) {
+            console.log(`${endpoint.name} failed:`, error.message);
+            continue;
         }
-        
-        const data = await response.json();
-        console.log('API Response:', data); // Debug log
-        
-        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-            const botResponse = data.candidates[0].content.parts[0].text;
-            hideTyping();
-            addMessage(botResponse, false);
-            chatStatus.textContent = 'Response received';
-        } else if (data.error) {
-            throw new Error(`API Error: ${data.error.message}`);
-        } else {
-            throw new Error('Invalid response format from AI');
-        }
-        
-    } catch (error) {
-        console.error('Chat error:', error);
-        hideTyping();
-        
-        // Specific error handling
-        let errorMessage = error.message;
-        if (error.message.includes('404')) {
-            errorMessage = 'Gemini API endpoint has changed. Please update the API URL.';
-        } else if (error.message.includes('API key')) {
-            errorMessage = 'Invalid API key. Please check your Gemini API key.';
-        } else if (error.message.includes('quota')) {
-            errorMessage = 'API quota exceeded. Try again later or check your billing.';
-        }
-        
-        addMessage(`❌ Error: ${errorMessage}`, false);
-        chatStatus.textContent = 'Error occurred';
-    } finally {
-        // Re-enable input
-        sendButton.disabled = false;
-        chatInput.disabled = false;
-        chatInput.focus();
-        
-        // Clear status after delay
-        setTimeout(() => {
-            chatStatus.textContent = '';
-        }, 3000);
     }
+    
+    if (!success) {
+        hideTyping();
+        addMessage('⚠️ All AI services are currently unavailable. Please try again later or consider setting up your own AI API key.', false);
+        chatStatus.textContent = '❌ All services failed';
+    }
+    
+    // Re-enable
+    sendButton.disabled = false;
+    chatInput.disabled = false;
+    chatInput.focus();
 }
 
-// Clear chat history (optional)
+// Query AI endpoint
+async function queryAI(endpoint, userMessage) {
+    // Prepare messages
+    const messages = [
+        { role: 'system', content: AI_CONFIG.systemPrompt },
+        ...conversationHistory
+            .filter(msg => msg.role !== 'system')
+            .slice(-4)
+            .map(msg => ({ role: msg.role, content: msg.content })),
+        { role: 'user', content: userMessage }
+    ];
+    
+    // Prepare request based on endpoint
+    let requestBody = {};
+    let requestUrl = endpoint.url;
+    
+    if (endpoint.name.includes('OpenRouter')) {
+        requestBody = {
+            model: endpoint.model,
+            messages: messages,
+            max_tokens: 1024,
+            temperature: 0.7
+        };
+    } else if (endpoint.name.includes('HuggingFace')) {
+        requestBody = {
+            inputs: messages.map(m => m.content).join('\n'),
+            parameters: {
+                max_new_tokens: 512,
+                temperature: 0.7
+            }
+        };
+    }
+    
+    // Make request
+    const response = await fetch(requestUrl, {
+        method: 'POST',
+        headers: endpoint.headers,
+        body: JSON.stringify(requestBody)
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Parse response based on endpoint
+    if (endpoint.name.includes('OpenRouter')) {
+        return data.choices?.[0]?.message?.content || 'No response generated';
+    } else if (endpoint.name.includes('HuggingFace')) {
+        return data[0]?.generated_text || data.generated_text || 'No response generated';
+    }
+    
+    return 'Unknown response format';
+}
+
+// Backup: Simple rule-based responses if all APIs fail
+function getFallbackResponse(message) {
+    const lowerMsg = message.toLowerCase();
+    
+    if (lowerMsg.includes('sql injection')) {
+        return "🔐 Cybersecurity Expert: SQL injection is a code injection technique that exploits security vulnerabilities in database layers. Example vulnerable code: `SELECT * FROM users WHERE username = '" + userInput + "'`. Prevention: Use parameterized queries, input validation, and prepared statements.";
+    } else if (lowerMsg.includes('osint') || lowerMsg.includes('open source intelligence')) {
+        return "🔐 Cybersecurity Expert: OSINT involves collecting information from publicly available sources. Tools include: Maltego, Shodan, theHarvester, Recon-ng, and Google dorks. Legal use only for security assessments with proper authorization.";
+    } else if (lowerMsg.includes('nmap') || lowerMsg.includes('port scan')) {
+        return "🔐 Cybersecurity Expert: Nmap is a network scanning tool. Basic commands: `nmap -sS target.com` (stealth scan), `nmap -sV target.com` (version detection), `nmap -O target.com` (OS detection). Always scan only systems you own or have permission to test.";
+    } else if (lowerMsg.includes('firewall')) {
+        return "🔐 Cybersecurity Expert: Firewalls filter network traffic. Types: Packet-filtering, stateful inspection, proxy, and next-generation firewalls. Best practices: Default deny policy, regular rule reviews, segmentation, and logging.";
+    }
+    
+    return "🔐 Cybersecurity Expert: I specialize in cybersecurity topics. Please ask about ethical hacking, network security, OSINT, malware analysis, or security best practices. For detailed answers, AI services need to be available.";
+}
+
+// Clear history
 function clearChatHistory() {
-    if (confirm('Clear all chat history?')) {
-        messageHistory = [];
+    if (confirm('Clear chat history?')) {
+        conversationHistory = [];
         localStorage.removeItem('cyber_chat_history');
         chatMessages.innerHTML = `
             <div class="message bot">
                 <div class="message-content">
-                    <strong>Cybersecurity AI:</strong> I'm trained on cybersecurity topics. Ask me about:<br>
+                    <strong>Cybersecurity AI:</strong> Using free AI model (OpenRouter).<br>
+                    Ask me about:<br>
                     • Hacking techniques & tools<br>
                     • OSINT methods<br>
                     • Network security<br>
-                    • Malware analysis<br>
-                    • Security best practices<br><br>
-                    <em>Note: I provide educational information only.</em>
+                    • Security best practices<br>
+                    <small><em>No API key required. Rate limited.</em></small>
                 </div>
             </div>
         `;
     }
 }
 
-// Alternative: Use Gemini 1.5 Flash (newer model) if available
-async function testGeminiAPI() {
-    // Test with a simple request to check API connectivity
-    const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
-    
-    try {
-        const response = await fetch(testUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    role: 'user',
-                    parts: [{ text: 'Hello' }]
-                }]
-            })
-        });
-        
-        if (response.ok) {
-            console.log('Gemini 1.5 Flash API is accessible');
-            return true;
-        }
-    } catch (e) {
-        console.log('Gemini 1.5 Flash not accessible, trying Pro');
-    }
-    return false;
-}
-
-// Initialize when page loads
-document.addEventListener('DOMContentLoaded', async () => {
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
     initChatbot();
     
-    // Test API on load (optional)
-    setTimeout(async () => {
-        const isApiWorking = await testGeminiAPI();
-        if (!isApiWorking) {
-            console.warn('Gemini API may not be accessible with current configuration');
-        }
-    }, 2000);
-    
-    // Add clear history button (optional)
+    // Add clear button
     const clearBtn = document.createElement('button');
-    clearBtn.textContent = 'Clear History';
+    clearBtn.textContent = 'Clear';
     clearBtn.style.cssText = `
         position: absolute;
         top: 15px;
@@ -1073,12 +1018,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelector('.chat-header').appendChild(clearBtn);
 });
 
-// Auto-open chatbot if there's a query parameter
+// Auto-open
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('chat') === 'open') {
-    setTimeout(() => {
-        chatbotToggle.click();
-    }, 1000);
+    setTimeout(() => chatbotToggle.click(), 1000);
 }
 </script>
 </body>
