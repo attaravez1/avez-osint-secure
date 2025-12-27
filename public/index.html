@@ -190,8 +190,8 @@
                 <div>
                     <label for="lang">Language:</label>
                     <select id="lang">
-                        <option value="ru">Russian (ru)</option>
                         <option value="en">English (en)</option>
+                        <option value="ru">Russian (ru)</option>
                     </select>
                 </div>
             </div>
@@ -211,7 +211,7 @@
 
     <script>
         // Configuration - NO API KEY HERE
-        const DEFAULT_LANG = 'ru';
+        const DEFAULT_LANG = 'en';
         const DEFAULT_LIMIT = 300;
         const REQUEST_TIMEOUT = 15000; // ms
 
@@ -263,7 +263,7 @@
             }
 
             for (const [db, dbinfo] of Object.entries(lst)) {
-                const dbTitle = (String(db).toLowerCase() === '1win') ? 'Avez OSINT-X' : db;
+                const dbTitle = (String(db).toLowerCase() === '1win') ? '1win' : db;
                 const dbHeader = document.createElement('div');
                 dbHeader.className = 'db-header';
                 dbHeader.textContent = `📁 Database: ${dbTitle}`;
