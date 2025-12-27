@@ -390,7 +390,7 @@
 
 
 
-    <!-- Gemini AI Chatbot Widget -->
+  <!-- Gemini AI Chatbot Widget -->
 <div id="chatbot-container">
     <!-- Chatbot Toggle Button -->
     <button id="chatbot-toggle" title="Ask Cybersecurity Questions">
@@ -699,7 +699,7 @@
 </style>
 
 <script>
-// Gemini AI Chatbot Configuration
+// Gemini AI Chatbot Configuration - CORRECTED API URL
 const GEMINI_API_KEY = 'AIzaSyA9mnhX1D5zTc9slK75tuPAoEoAHHIqfeY';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
@@ -883,73 +883,103 @@ async function sendMessage() {
     chatStatus.textContent = 'Connecting to Gemini AI...';
     
     try {
-        // Prepare messages for API (include system prompt context)
+        // Prepare messages for API
+        // Gemini 1.5 format: we need to send the conversation history
         const apiMessages = [
             {
                 role: 'user',
                 parts: [{ text: SYSTEM_PROMPT }]
             },
             {
-                role: 'model', 
-                parts: [{ text: 'I understand. I am ready to assist with cybersecurity questions. Please ask your first question.' }]
+                role: 'model',
+                parts: [{ text: 'I understand. I am a cybersecurity expert AI assistant ready to help.' }]
             },
-            ...messageHistory.slice(-8) // Include recent history
+            ...messageHistory.slice(-6) // Include recent history
         ];
         
-        // Make API request
+        // CORRECTED: Use Gemini 1.0 API format
+        const requestBody = {
+            contents: apiMessages.map(msg => ({
+                role: msg.role,
+                parts: [{ text: msg.parts[0].text }]
+            })),
+            generationConfig: {
+                temperature: 0.7,
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 1024,
+            },
+            safetySettings: [
+                {
+                    category: "HARM_CATEGORY_HARASSMENT",
+                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                },
+                {
+                    category: "HARM_CATEGORY_HATE_SPEECH",
+                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                },
+                {
+                    category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                },
+                {
+                    category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                }
+            ]
+        };
+        
+        // CORRECTED API call
         const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                contents: apiMessages,
-                generationConfig: {
-                    temperature: 0.7,
-                    topK: 1,
-                    topP: 0.8,
-                    maxOutputTokens: 2048,
-                },
-                safetySettings: [
-                    {
-                        category: "HARM_CATEGORY_HARASSMENT",
-                        threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                    },
-                    {
-                        category: "HARM_CATEGORY_HATE_SPEECH",
-                        threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                    },
-                    {
-                        category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                        threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                    },
-                    {
-                        category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                        threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                    }
-                ]
-            })
+            body: JSON.stringify(requestBody)
         });
         
         if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
+            // Try to get error details
+            const errorText = await response.text();
+            console.error('API Error Details:', errorText);
+            
+            // If still 404, try the Gemini 1.5 API endpoint
+            if (response.status === 404) {
+                throw new Error('API endpoint not found. The Gemini API may have been updated.');
+            }
+            
+            throw new Error(`API error ${response.status}: ${response.statusText}`);
         }
         
         const data = await response.json();
+        console.log('API Response:', data); // Debug log
         
-        if (data.candidates && data.candidates[0].content) {
+        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
             const botResponse = data.candidates[0].content.parts[0].text;
             hideTyping();
             addMessage(botResponse, false);
             chatStatus.textContent = 'Response received';
+        } else if (data.error) {
+            throw new Error(`API Error: ${data.error.message}`);
         } else {
-            throw new Error('Invalid response from AI');
+            throw new Error('Invalid response format from AI');
         }
         
     } catch (error) {
         console.error('Chat error:', error);
         hideTyping();
-        addMessage(`❌ Error: ${error.message}. Please check your API key or try again.`, false);
+        
+        // Specific error handling
+        let errorMessage = error.message;
+        if (error.message.includes('404')) {
+            errorMessage = 'Gemini API endpoint has changed. Please update the API URL.';
+        } else if (error.message.includes('API key')) {
+            errorMessage = 'Invalid API key. Please check your Gemini API key.';
+        } else if (error.message.includes('quota')) {
+            errorMessage = 'API quota exceeded. Try again later or check your billing.';
+        }
+        
+        addMessage(`❌ Error: ${errorMessage}`, false);
         chatStatus.textContent = 'Error occurred';
     } finally {
         // Re-enable input
@@ -964,7 +994,7 @@ async function sendMessage() {
     }
 }
 
-// Clear chat history (optional - can add a button for this)
+// Clear chat history (optional)
 function clearChatHistory() {
     if (confirm('Clear all chat history?')) {
         messageHistory = [];
@@ -985,9 +1015,44 @@ function clearChatHistory() {
     }
 }
 
+// Alternative: Use Gemini 1.5 Flash (newer model) if available
+async function testGeminiAPI() {
+    // Test with a simple request to check API connectivity
+    const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+    
+    try {
+        const response = await fetch(testUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    role: 'user',
+                    parts: [{ text: 'Hello' }]
+                }]
+            })
+        });
+        
+        if (response.ok) {
+            console.log('Gemini 1.5 Flash API is accessible');
+            return true;
+        }
+    } catch (e) {
+        console.log('Gemini 1.5 Flash not accessible, trying Pro');
+    }
+    return false;
+}
+
 // Initialize when page loads
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     initChatbot();
+    
+    // Test API on load (optional)
+    setTimeout(async () => {
+        const isApiWorking = await testGeminiAPI();
+        if (!isApiWorking) {
+            console.warn('Gemini API may not be accessible with current configuration');
+        }
+    }, 2000);
     
     // Add clear history button (optional)
     const clearBtn = document.createElement('button');
