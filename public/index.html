@@ -391,5 +391,108 @@
 
 
 
+
+    <!-- Simple WhatsApp Chat Button -->
+<a href="https://wa.me/27604133434?text=Hello%20I%20have%20a%20question%20about%20OSINT" 
+   target="_blank" 
+   id="whatsapp-chat-button" 
+   title="Chat on WhatsApp">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+        <path d="M17.507 14.307l-.008.008c-.301.301-.669.449-1.034.449-.366 0-.734-.148-1.035-.449l-1.212-1.211-2.491 1.478 1.478-2.491-1.211-1.211c-.301-.301-.449-.669-.449-1.034 0-.366.148-.734.449-1.035l3.535-3.535c.602-.602 1.654-.602 2.256 0l.708.708c.602.602.602 1.654 0 2.256l-1.649 1.649 1.649 1.649c.602.602.602 1.654 0 2.256l-.708.708z" fill="white"/>
+        <path d="M20.52 3.449C18.441 1.371 15.527 0 12.435 0 5.962 0 .687 5.274.687 11.747c0 2.104.601 4.136 1.741 5.917L.037 23.644c-.094.301.037.602.301.769.131.075.301.113.451.113.188 0 .376-.056.526-.169l5.917-4.016c1.634.94 3.478 1.447 5.322 1.447 6.473 0 11.748-5.274 11.748-11.747 0-3.092-1.371-6.006-3.449-8.085zm-8.085 18.77c-1.556 0-3.091-.45-4.441-1.295l-.338-.188-3.516 2.39.94-3.067-.226-.376c-1.069-1.78-1.633-3.854-1.633-5.985 0-5.288 4.299-9.587 9.587-9.587 2.558 0 4.956.996 6.76 2.802 1.806 1.806 2.802 4.202 2.802 6.76 0 5.289-4.299 9.587-9.587 9.587z" fill="white"/>
+    </svg>
+</a>
+
+<style>
+#whatsapp-chat-button {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    background: #25D366;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+    transition: all 0.3s ease;
+    z-index: 999;
+    border: 2px solid white;
+    text-decoration: none;
+}
+
+#whatsapp-chat-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(37, 211, 102, 0.6);
+    background: #1da851;
+}
+
+#whatsapp-chat-button:active {
+    transform: scale(0.95);
+}
+
+/* Pulse animation */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 15px rgba(37, 211, 102, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+    }
+}
+
+#whatsapp-chat-button {
+    animation: pulse 2s infinite;
+}
+
+/* Tooltip */
+#whatsapp-chat-button::after {
+    content: 'Chat on WhatsApp';
+    position: absolute;
+    right: 70px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #161b22;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    border: 1px solid #30363d;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+#whatsapp-chat-button:hover::after {
+    opacity: 1;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    #whatsapp-chat-button {
+        bottom: 20px;
+        right: 20px;
+        width: 56px;
+        height: 56px;
+    }
+    
+    #whatsapp-chat-button::after {
+        display: none;
+    }
+}
+
+/* Adjust position when chatbot is open */
+@media (min-width: 769px) {
+    #chatbot-container.active ~ #whatsapp-chat-button {
+        bottom: 520px;
+    }
+}
+</style>
 </body>
 </html>
