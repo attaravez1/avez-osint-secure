@@ -32,6 +32,77 @@
             color: #8b949e;
             margin-bottom: 25px;
         }
+        
+        /* NEW: Access Key Section */
+        .access-section {
+            margin-bottom: 20px;
+            background: #0d1117;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+        }
+        .access-section label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            color: #58a6ff;
+            font-weight: bold;
+        }
+        .access-section label svg {
+            color: #a371f7;
+        }
+        .access-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        #accessKeyInput {
+            flex-grow: 1;
+            padding: 12px 15px;
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 16px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        #accessKeyInput:focus {
+            outline: none;
+            border-color: #a371f7;
+        }
+        #saveAccessKey {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #a371f7, #8957e5);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        #saveAccessKey:hover:not(:disabled) {
+            background: linear-gradient(135deg, #8957e5, #7c3aed);
+        }
+        #saveAccessKey:disabled {
+            background: #30363d;
+            cursor: not-allowed;
+        }
+        .access-status {
+            margin-top: 8px;
+            font-size: 13px;
+            min-height: 20px;
+        }
+        .access-status.valid {
+            color: #3fb950;
+        }
+        .access-status.invalid {
+            color: #f85149;
+        }
+        .access-status.neutral {
+            color: #8b949e;
+        }
+        
         .input-section {
             margin-bottom: 30px;
             background: #0d1117;
@@ -39,7 +110,7 @@
             border-radius: 6px;
             border: 1px solid #30363d;
         }
-        label {
+        .input-section label {
             display: block;
             margin-bottom: 8px;
             font-weight: bold;
@@ -175,6 +246,27 @@
         <p class="subtitle">Check the Hidden/breached Info via phone number or email address. Only shows the info which is breached Online. If no result appears, it simply means the data was not found in known breaches, try searching with old num/email. If No logs, then no traces.</p>
         <p class="subtitle"><h3>Note: Enter number with +91 (Sometimes because of api limit you will not get the Result)</h3></p>
 
+        <!-- NEW: Access Key Section -->
+        <div class="access-section">
+            <label for="accessKeyInput">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Access Key (Required)
+            </label>
+            <div class="access-input-group">
+                <input type="password" 
+                       id="accessKeyInput" 
+                       placeholder="Enter your access key"
+                       autocomplete="off" />
+                <button id="saveAccessKey">Save Key</button>
+            </div>
+            <div id="accessStatus" class="access-status neutral">
+                🔑 Enter access key to enable search functionality
+            </div>
+        </div>
+
         <div class="input-section">
             <label for="queryInput">Target (Phone/Email):</label>
             <div class="input-group">
@@ -182,22 +274,14 @@
                 <button id="searchBtn">Search</button>
                 <button id="clearBtn">Clear</button>
 
-
                 <!-- Database Link in Footer -->
-<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #30363d;">
-    <a href="https://drive.usercontent.google.com/u/2/uc?id=1sFHXTMPhnfk6x_qteFX2un-kYRPqUGvU&export=download" 
-       target="_blank" 
-       style="color: #58a6ff; text-decoration: none;">
-        📊 Download Database List
-    </a>
-</div>
-
-
-
-
-
-
-                
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #30363d;">
+                    <a href="https://drive.usercontent.google.com/u/2/uc?id=1sFHXTMPhnfk6x_qteFX2un-kYRPqUGvU&export=download" 
+                       target="_blank" 
+                       style="color: #58a6ff; text-decoration: none;">
+                        📊 Download Database List
+                    </a>
+                </div>
             </div>
             <div class="config">
                 <div>
@@ -227,10 +311,14 @@
     </div>
 
     <script>
-        // Configuration - NO API KEY HERE
+        // Configuration
         const DEFAULT_LANG = 'en';
         const DEFAULT_LIMIT = 300;
         const REQUEST_TIMEOUT = 15000; // ms
+        
+        // Access key storage
+        let userAccessKey = localStorage.getItem('osint_access_key') || '';
+        let isKeyValid = false;
 
         // DOM Elements
         const queryInput = document.getElementById('queryInput');
@@ -240,6 +328,133 @@
         const langSelect = document.getElementById('lang');
         const statusEl = document.getElementById('statusEl');
         const resultsEl = document.getElementById('resultsEl');
+        
+        // NEW: Access Key Elements
+        const accessKeyInput = document.getElementById('accessKeyInput');
+        const saveAccessKeyBtn = document.getElementById('saveAccessKey');
+        const accessStatus = document.getElementById('accessStatus');
+
+        // Initialize access key
+        function initAccessKey() {
+            if (userAccessKey) {
+                accessKeyInput.value = '••••••••';
+                accessStatus.textContent = '✅ Using saved access key';
+                accessStatus.className = 'access-status valid';
+                isKeyValid = true;
+                enableSearch();
+            } else {
+                accessStatus.textContent = '🔑 Enter access key to enable search functionality';
+                accessStatus.className = 'access-status neutral';
+                disableSearch();
+            }
+        }
+
+        // Enable/disable search functionality
+        function enableSearch() {
+            searchBtn.disabled = false;
+            queryInput.disabled = false;
+            queryInput.placeholder = "e.g., +91 9999999999 or target@example.com";
+        }
+
+        function disableSearch() {
+            searchBtn.disabled = true;
+            queryInput.disabled = true;
+            queryInput.placeholder = "Enter access key first";
+        }
+
+        // Save access key
+        saveAccessKeyBtn.addEventListener('click', async () => {
+            const key = accessKeyInput.value.trim();
+            
+            if (!key) {
+                accessStatus.textContent = '❌ Please enter an access key';
+                accessStatus.className = 'access-status invalid';
+                return;
+            }
+
+            saveAccessKeyBtn.disabled = true;
+            saveAccessKeyBtn.textContent = 'Verifying...';
+            accessStatus.textContent = '🔐 Verifying access key...';
+            accessStatus.className = 'access-status neutral';
+
+            // Test the key by making a simple request
+            try {
+                const testPayload = {
+                    accessKey: key,
+                    request: 'test',
+                    limit: 1,
+                    lang: 'en'
+                };
+
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testPayload)
+                });
+
+                if (response.status === 401) {
+                    throw new Error('Invalid access key');
+                }
+
+                // Key is valid
+                userAccessKey = key;
+                localStorage.setItem('osint_access_key', key);
+                isKeyValid = true;
+                
+                accessKeyInput.value = '••••••••';
+                accessStatus.textContent = '✅ Access key saved and verified';
+                accessStatus.className = 'access-status valid';
+                enableSearch();
+
+            } catch (error) {
+                if (error.message === 'Invalid access key') {
+                    accessStatus.textContent = '❌ Invalid access key. Please check and try again.';
+                } else {
+                    accessStatus.textContent = '❌ Connection error. Please try again.';
+                }
+                accessStatus.className = 'access-status invalid';
+                isKeyValid = false;
+                disableSearch();
+            } finally {
+                saveAccessKeyBtn.disabled = false;
+                saveAccessKeyBtn.textContent = 'Save Key';
+            }
+        });
+
+        // Clear saved key (on shift+double click)
+        saveAccessKeyBtn.addEventListener('dblclick', (e) => {
+            if (e.shiftKey) {
+                localStorage.removeItem('osint_access_key');
+                userAccessKey = '';
+                accessKeyInput.value = '';
+                accessStatus.textContent = '🔑 Access key cleared. Enter new key.';
+                accessStatus.className = 'access-status neutral';
+                disableSearch();
+                alert('Access key cleared. Please enter a new key.');
+            }
+        });
+
+        // Enter key to save
+        accessKeyInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                saveAccessKeyBtn.click();
+            }
+        });
+
+        // Show/hide access key
+        accessKeyInput.addEventListener('focus', () => {
+            if (accessKeyInput.value === '••••••••') {
+                accessKeyInput.type = 'text';
+                accessKeyInput.value = userAccessKey;
+            }
+        });
+
+        accessKeyInput.addEventListener('blur', () => {
+            if (accessKeyInput.value === userAccessKey && userAccessKey) {
+                accessKeyInput.type = 'password';
+                accessKeyInput.value = '••••••••';
+            }
+        });
 
         // Format response as JS-like object
         function formatAsJs(data) {
@@ -308,13 +523,18 @@
             }
         }
 
-        // Query the API via our secure backend
+        // UPDATED: Query the API with access key
         async function queryApi(query) {
+            if (!isKeyValid || !userAccessKey) {
+                throw new Error('Access key required. Please enter a valid access key.');
+            }
+
             const limit = parseInt(limitInput.value) || DEFAULT_LIMIT;
             const lang = langSelect.value || DEFAULT_LANG;
 
             const payload = {
-                request: query,  // NO TOKEN SENT FROM FRONTEND
+                accessKey: userAccessKey,  // ADDED: Access key sent to backend
+                request: query,
                 limit: limit,
                 lang: lang
             };
@@ -334,6 +554,14 @@
                 clearTimeout(timeoutId);
 
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        // Access key invalid, clear it
+                        localStorage.removeItem('osint_access_key');
+                        userAccessKey = '';
+                        isKeyValid = false;
+                        initAccessKey();
+                        throw new Error('Access key expired or invalid. Please enter a new key.');
+                    }
                     const errorText = await response.text();
                     throw new Error(`Backend error: ${response.status} - ${errorText}`);
                 }
@@ -355,6 +583,13 @@
 
         // Event Handlers
         searchBtn.addEventListener('click', async () => {
+            if (!isKeyValid) {
+                accessStatus.textContent = '❌ Please enter and save a valid access key first';
+                accessStatus.className = 'access-status invalid';
+                accessKeyInput.focus();
+                return;
+            }
+
             const query = queryInput.value.trim();
             if (!query) {
                 alert('Please enter a phone number or email address.');
@@ -395,8 +630,10 @@
             }
         });
 
-        // Optional: Load from URL parameter
+        // Initialize on load
         window.addEventListener('DOMContentLoaded', () => {
+            initAccessKey();
+            
             const urlParams = new URLSearchParams(window.location.search);
             const presetQuery = urlParams.get('q');
             if (presetQuery) {
@@ -405,111 +642,100 @@
         });
     </script>
 
-
-
-
-
     <!-- Simple WhatsApp Chat Button -->
-<a href="https://wa.me/27604133434?text=Hello%20I%20have%20a%20question%20about%20OSINT" 
-   target="_blank" 
-   id="whatsapp-chat-button" 
-   title="Chat on WhatsApp">
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-        <path d="M17.507 14.307l-.008.008c-.301.301-.669.449-1.034.449-.366 0-.734-.148-1.035-.449l-1.212-1.211-2.491 1.478 1.478-2.491-1.211-1.211c-.301-.301-.449-.669-.449-1.034 0-.366.148-.734.449-1.035l3.535-3.535c.602-.602 1.654-.602 2.256 0l.708.708c.602.602.602 1.654 0 2.256l-1.649 1.649 1.649 1.649c.602.602.602 1.654 0 2.256l-.708.708z" fill="white"/>
-        <path d="M20.52 3.449C18.441 1.371 15.527 0 12.435 0 5.962 0 .687 5.274.687 11.747c0 2.104.601 4.136 1.741 5.917L.037 23.644c-.094.301.037.602.301.769.131.075.301.113.451.113.188 0 .376-.056.526-.169l5.917-4.016c1.634.94 3.478 1.447 5.322 1.447 6.473 0 11.748-5.274 11.748-11.747 0-3.092-1.371-6.006-3.449-8.085zm-8.085 18.77c-1.556 0-3.091-.45-4.441-1.295l-.338-.188-3.516 2.39.94-3.067-.226-.376c-1.069-1.78-1.633-3.854-1.633-5.985 0-5.288 4.299-9.587 9.587-9.587 2.558 0 4.956.996 6.76 2.802 1.806 1.806 2.802 4.202 2.802 6.76 0 5.289-4.299 9.587-9.587 9.587z" fill="white"/>
-    </svg>
-</a>
+    <a href="https://wa.me/27604133434?text=Hello%20I%20have%20a%20question%20about%20OSINT" 
+       target="_blank" 
+       id="whatsapp-chat-button" 
+       title="Chat on WhatsApp">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <path d="M17.507 14.307l-.008.008c-.301.301-.669.449-1.034.449-.366 0-.734-.148-1.035-.449l-1.212-1.211-2.491 1.478 1.478-2.491-1.211-1.211c-.301-.301-.449-.669-.449-1.034 0-.366.148-.734.449-1.035l3.535-3.535c.602-.602 1.654-.602 2.256 0l.708.708c.602.602.602 1.654 0 2.256l-1.649 1.649 1.649 1.649c.602.602.602 1.654 0 2.256l-.708.708z" fill="white"/>
+            <path d="M20.52 3.449C18.441 1.371 15.527 0 12.435 0 5.962 0 .687 5.274.687 11.747c0 2.104.601 4.136 1.741 5.917L.037 23.644c-.094.301.037.602.301.769.131.075.301.113.451.113.188 0 .376-.056.526-.169l5.917-4.016c1.634.94 3.478 1.447 5.322 1.447 6.473 0 11.748-5.274 11.748-11.747 0-3.092-1.371-6.006-3.449-8.085zm-8.085 18.77c-1.556 0-3.091-.45-4.441-1.295l-.338-.188-3.516 2.39.94-3.067-.226-.376c-1.069-1.78-1.633-3.854-1.633-5.985 0-5.288 4.299-9.587 9.587-9.587 2.558 0 4.956.996 6.76 2.802 1.806 1.806 2.802 4.202 2.802 6.76 0 5.289-4.299 9.587-9.587 9.587z" fill="white"/>
+        </svg>
+    </a>
 
-<style>
-#whatsapp-chat-button {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    width: 60px;
-    height: 60px;
-    background: #25D366;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
-    transition: all 0.3s ease;
-    z-index: 999;
-    border: 2px solid white;
-    text-decoration: none;
-}
-
-#whatsapp-chat-button:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(37, 211, 102, 0.6);
-    background: #1da851;
-}
-
-#whatsapp-chat-button:active {
-    transform: scale(0.95);
-}
-
-/* Pulse animation */
-@keyframes pulse {
-    0% {
-        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
-    }
-    70% {
-        box-shadow: 0 0 0 15px rgba(37, 211, 102, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
-    }
-}
-
-#whatsapp-chat-button {
-    animation: pulse 2s infinite;
-}
-
-/* Tooltip */
-#whatsapp-chat-button::after {
-    content: 'Chat on WhatsApp';
-    position: absolute;
-    right: 70px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: #161b22;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 14px;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-    border: 1px solid #30363d;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-#whatsapp-chat-button:hover::after {
-    opacity: 1;
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
+    <style>
     #whatsapp-chat-button {
-        bottom: 20px;
-        right: 20px;
-        width: 56px;
-        height: 56px;
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 60px;
+        height: 60px;
+        background: #25D366;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+        transition: all 0.3s ease;
+        z-index: 999;
+        border: 2px solid white;
+        text-decoration: none;
     }
-    
-    #whatsapp-chat-button::after {
-        display: none;
-    }
-}
 
-/* Adjust position when chatbot is open */
-@media (min-width: 769px) {
-    #chatbot-container.active ~ #whatsapp-chat-button {
-        bottom: 520px;
+    #whatsapp-chat-button:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(37, 211, 102, 0.6);
+        background: #1da851;
     }
-}
-</style>
+
+    #whatsapp-chat-button:active {
+        transform: scale(0.95);
+    }
+
+    /* Pulse animation */
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 15px rgba(37, 211, 102, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+        }
+    }
+
+    #whatsapp-chat-button {
+        animation: pulse 2s infinite;
+    }
+
+    /* Tooltip */
+    #whatsapp-chat-button::after {
+        content: 'Chat on WhatsApp';
+        position: absolute;
+        right: 70px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #161b22;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        border: 1px solid #30363d;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    #whatsapp-chat-button:hover::after {
+        opacity: 1;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        #whatsapp-chat-button {
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+        }
+        
+        #whatsapp-chat-button::after {
+            display: none;
+        }
+    }
+    </style>
 </body>
 </html>
