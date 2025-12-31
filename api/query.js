@@ -1,10 +1,29 @@
-// api/query.js - Secure Vercel Serverless Function
+// api/query.js - Secure Vercel Serverless Function with Access Key Validation
 const fetch = require('node-fetch');
 
 // Configuration - API key from environment variable
 const API_BASE_URL = 'https://leakosintapi.com/';
 const API_TOKEN = process.env.API_TOKEN || '8513993113:x5Zx70lb'; // Fallback for local dev
+const ACCESS_KEYS = process.env.ACCESS_KEYS ? 
+    process.env.ACCESS_KEYS.split(':').map(key => key.trim()).filter(key => key.length > 0) : 
+    [];
 const REQUEST_TIMEOUT = 15000;
+
+// Access key validation function
+function validateAccessKey(accessKey) {
+    if (ACCESS_KEYS.length === 0) {
+        // If no access keys configured, allow all requests (backward compatibility)
+        console.warn('No ACCESS_KEYS configured, allowing all requests');
+        return true;
+    }
+    
+    if (!accessKey || typeof accessKey !== 'string') {
+        return false;
+    }
+    
+    const trimmedKey = accessKey.trim();
+    return ACCESS_KEYS.includes(trimmedKey);
+}
 
 // Retry logic
 async function fetchWithRetry(url, options, retries = 3) {
@@ -61,7 +80,17 @@ module.exports = async (req, res) => {
       return res.status(400).json({ 'Error code': 'No data provided' });
     }
 
-    // Extract parameters from frontend
+    // NEW: Extract and validate access key
+    const accessKey = data.accessKey || '';
+    
+    // Validate access key
+    if (!validateAccessKey(accessKey)) {
+      return res.status(401).json({ 
+        'Error code': 'Unauthorized: Invalid or missing access key' 
+      });
+    }
+
+    // Extract query parameters from frontend
     const query = data.request || data.query || '';
     const limit = data.limit || 300;
     const lang = data.lang || 'ru';
@@ -110,6 +139,9 @@ module.exports = async (req, res) => {
     } else if (error.message.includes('network') || error.message.includes('fetch')) {
       statusCode = 502;
       errorMessage = 'Network error';
+    } else if (error.message.includes('Unauthorized')) {
+      statusCode = 401;
+      errorMessage = 'Authentication required';
     }
     
     return res.status(statusCode).json({ 
